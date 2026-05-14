@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genetics Lab - Mattwe</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Modal Benvenuto -->
+    <div id="welcome-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Genetica & Appunti</h2>
+            <p>Simulatore di Quadrato di Punnett con griglia variabile e strumenti di presentazione.</p>
+            <button class="btn btn-primary" style="padding: 12px 30px" onclick="closeModal('welcome-modal')">Inizia</button>
+        </div>
+    </div>
+
+    <!-- Modal Export -->
+    <div id="export-modal" class="modal-overlay" style="display:none">
+        <div class="modal-content">
+            <h2 style="color: var(--success)">Pronto per l'esportazione!</h2>
+            <p>Premi <kbd>Ctrl</kbd>+<kbd>P</kbd> per salvare come PDF nella nuova scheda.</p>
+            <button class="btn btn-success" onclick="openExportTab()">Genera File</button>
+            <button class="btn btn-tool" style="margin-top:10px; border:none" onclick="closeModal('export-modal')">Annulla</button>
+        </div>
+    </div>
+
+    <div class="top-bar">
+        <div style="display:flex; align-items:center; gap:15px">
+            <h3 style="margin:0; color:var(--primary); font-size: 18px;">Mattwe Genetics Lab</h3>
+            <div id="presenterModeBadge" class="presenter-badge" style="display:none">Modalità Presentatore</div>
+        </div>
+        <div class="toggle-container">
+            <span>Mostra Appunti</span>
+            <label class="switch">
+                <input type="checkbox" id="notesToggle" checked onchange="toggleNotes()">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div class="main-wrapper">
+        <!-- Pannello Sinistro: Controllo Genetica -->
+        <div class="panel left-panel" id="leftPanel">
+            <div class="scrollable-content">
+                <h4 style="margin:0 0 10px 0;">Configurazione Griglia</h4>
+                
+                <div style="margin-bottom: 20px; text-align: center;">
+                    <label style="font-weight: bold; font-size: 13px; color: #666;">Dimensione Griglia:</label><br>
+                    <select class="size-select" id="gridSize" onchange="initGameteInputs()">
+                        <option value="2">2 x 2</option>
+                        <option value="4">4 x 4</option>
+                        <option value="6">6 x 6</option>
+                        <option value="8">8 x 8</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label style="font-size:12px; font-weight:bold; color: var(--primary);">Madre (♀) - Gameti</label>
+                    <div id="motherGametes" class="gamete-inputs"></div>
+                </div>
+
+                <div class="input-group">
+                    <label style="font-size:12px; font-weight:bold; color: var(--primary);">Padre (♂) - Gameti</label>
+                    <div id="fatherGametes" class="gamete-inputs"></div>
+                </div>
+                
+                <div style="display:flex; justify-content:center; width: 100%; margin: 20px 0;">
+                    <canvas id="punnettCanvas" width="400" height="400" style="max-width: 100%; height: auto; border: 1px solid #ddd;"></canvas>
+                </div>
+
+                <div id="statsBox" style="background:#f8f9fa; padding:15px; border-radius:8px; font-size:14px; width: 100%; border: 1px solid #eee;"></div>
+            </div>
+        </div>
+
+        <!-- Pannello Destro: Appunti e Disegno -->
+        <div class="panel right-panel" id="rightPanel">
+            <div class="editor-container">
+                <div class="tabs">
+                    <button class="tab-btn active" id="tabDraw" onclick="switchNoteTab('draw')">Disegno Libero</button>
+                    <button class="tab-btn" id="tabText" onclick="switchNoteTab('text')">Editor Testo</button>
+                </div>
+
+                <!-- Toolbar Disegno Standard -->
+                <div id="drawToolbar" class="editor-toolbar">
+                    <button class="btn btn-tool active" id="tool-pen" onclick="setDrawTool('pen')">Penna</button>
+                    <button class="btn btn-tool" id="tool-pencil" onclick="setDrawTool('pencil')">Matita</button>
+                    <button class="btn btn-tool" id="tool-highlighter" onclick="setDrawTool('highlighter')">Evid.</button>
+                    <button class="btn btn-tool" id="tool-pan" onclick="setDrawTool('pan')">✋ Mano</button>
+                    <input type="color" id="drawColor" value="#4a90e2" onchange="updateDrawColor()" style="height:32px; border:none; cursor:pointer">
+                    <div style="height: 24px; width: 1px; background: #ddd; margin: 0 5px;"></div>
+                    <button class="btn btn-tool" id="btn-presenter" onclick="togglePresenterMode()">📺 Presentatore</button>
+                    <button class="btn btn-tool" style="margin-left:auto" onclick="clearDrawing()">Cancella</button>
+                </div>
+
+                <!-- Toolbar Presentatore -->
+                <div id="presenterToolbar" class="editor-toolbar" style="display:none; background: #dfe6e9;">
+                    <button class="btn btn-tool active" id="tool-laser" onclick="setDrawTool('laser')">🔴 Laser</button>
+                    <button class="btn btn-tool" id="tool-pan-p" onclick="setDrawTool('pan')">✋ Mano</button>
+                    <button class="btn btn-tool" style="margin-left:auto; background: #e17055; color: white; border:none" onclick="togglePresenterMode()">Esci Presentatore</button>
+                </div>
+
+                <div id="textToolbar" class="editor-toolbar" style="display:none">
+                    <button class="btn btn-tool" onclick="formatText('bold')">B</button>
+                    <button class="btn btn-tool" onclick="formatText('italic')">I</button>
+                    <button class="btn btn-tool" onclick="formatText('underline')">U</button>
+                </div>
+
+                <div style="flex:1; position:relative; overflow:hidden; background:white;">
+                    <canvas id="drawingCanvas"></canvas>
+                    <div id="textEditor" class="rich-editor" contenteditable="true" style="display:none" oninput="checkContent()">
+                        <p>Scrivi qui le tue osservazioni...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Panel -->
+    <div class="export-footer-panel">
+        <div class="export-options">
+            <strong style="font-size:14px">Esporta in report:</strong>
+            <div class="export-grid">
+                <label style="font-size:13px; cursor:pointer;"><input type="checkbox" id="expPunnett" checked> Quadrato</label>
+                <label id="labelDraw" style="font-size:13px; opacity:0.5;"><input type="checkbox" id="expDraw" disabled> Disegni</label>
+                <label id="labelText" style="font-size:13px; opacity:0.5;"><input type="checkbox" id="expText" disabled> Testo</label>
+            </div>
+        </div>
+        <button class="btn btn-success" id="exportBtn" onclick="showExportNotification()">ESPORTA ORA</button>
+    </div>
+
+    <footer>Mattwe web site</footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
